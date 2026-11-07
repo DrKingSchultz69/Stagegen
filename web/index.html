@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Stagegen Studio</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark"></span>STAGEGEN</div>
+        <div class="project-picker">
+          <select id="projectSelect" title="Project"></select>
+          <button id="newProjectBtn" class="ghost" title="New project">＋ New</button>
+          <button id="renameProjectBtn" class="ghost" title="Rename project">Rename</button>
+          <button id="deleteProjectBtn" class="ghost danger" title="Delete project">Delete</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="chips">
+          <span class="chip" id="chipLink">Server</span>
+          <span class="chip" id="chipGateway">AI gateway</span>
+          <span class="chip" id="chipShows">0 outputs</span>
+        </div>
+        <button id="showOutputBtn" class="primary">Show output ↗</button>
+        <button id="settingsBtn" class="ghost icon" title="Settings">⚙</button>
+      </header>
+
+      <main class="workspace">
+        <section class="stage-col">
+          <div class="preview-wrap">
+            <canvas id="preview"></canvas>
+            <div class="preview-badge" id="previewBadge">PREVIEW</div>
+          </div>
+
+          <div class="controls">
+            <div class="seg" id="modeSeg" role="tablist">
+              <button data-mode="track" title="Visuals follow the uploaded track's timeline">Track</button>
+              <button data-mode="live" title="Operator cues sections; visuals react to live input">Live</button>
+            </div>
+
+            <div class="ctl-group" id="trackControls">
+              <button id="playBtn" class="primary round" title="Play / pause (Space)">▶</button>
+              <button id="stopBtn" class="ghost round" title="Back to start">■</button>
+              <span class="time" id="timeLabel">0:00.0 / 0:00</span>
+              <button id="replaceAudioBtn" class="ghost small hidden" title="Upload a different audio file">Replace audio</button>
+            </div>
+
+            <div class="ctl-group hidden" id="liveControls">
+              <button id="prevSectionBtn" class="ghost" title="Previous section (←)">◀ Prev</button>
+              <button id="nextSectionBtn" class="primary" title="Next section (→)">Next ▶</button>
+              <button id="tapBtn" class="ghost" title="Tap tempo (T)">Tap</button>
+              <label class="inline">BPM <input id="bpmInput" type="number" min="0" max="300" step="0.1" /></label>
+              <select id="inputSelect" title="Live audio input"></select>
+              <button id="inputBtn" class="ghost">Enable input</button>
+              <div class="meters" id="meters"><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <div class="ctl-group output-ctl">
+              <label class="inline" title="Output intensity">Intensity <input id="intensity" type="range" min="0" max="1.5" step="0.01" value="1" /></label>
+              <button id="blackoutBtn" class="ghost" title="Blackout (B)">Blackout</button>
+              <label class="inline toggle" title="Monitor the track on this computer"><input id="monitorChk" type="checkbox" checked /> Monitor</label>
+              <label class="inline toggle" title="Also play the track on the show outputs"><input id="showAudioChk" type="checkbox" /> Audio on show</label>
+              <label class="inline" title="Delay the visuals to match projector / PA latency">Offset <input id="offsetInput" type="number" step="5" min="-1000" max="1000" value="0" /> ms</label>
+            </div>
+          </div>
+
+          <div class="pads" id="sectionPads"></div>
+        </section>
+
+        <aside class="plan-col" id="planPanel"></aside>
+      </main>
+
+      <section class="timeline-wrap" id="timelineWrap">
+        <canvas id="timeline"></canvas>
+        <div class="dropzone" id="dropZone">
+          <div class="dz-inner">
+            <div class="dz-title">Drop an audio file</div>
+            <div class="dz-sub">MP3, WAV, FLAC, OGG, M4A, AIFF · analyzed for tempo, beats and sections</div>
+            <button id="browseBtn" class="primary">Choose file</button>
+          </div>
+        </div>
+        <div class="upload-progress hidden" id="uploadProgress"><div class="bar"></div><span>Uploading…</span></div>
+        <input id="fileInput" type="file" accept="audio/*,.aif,.aiff,.flac,.opus" hidden />
+      </section>
+
+      <footer class="promptbar">
+        <textarea id="promptInput" rows="2" placeholder="Describe the visual world for this track… e.g. “lonely neon desert at dusk, slow build into a storm of light at the drop”"></textarea>
+        <div class="prompt-side">
+          <div class="prompt-row">
+            <select id="providerSelect" title="LLM provider">
+              <option value="openrouter">OpenRouter</option>
+              <option value="anthropic">Anthropic</option>
+            </select>
+            <input id="modelInput" list="modelList" placeholder="model" title="Model" spellcheck="false" />
+            <datalist id="modelList"></datalist>
+          </div>
+          <div class="prompt-row">
+            <label class="inline toggle" title="Revise the current plan instead of starting over"><input id="reviseChk" type="checkbox" /> Revise current plan</label>
+            <button id="refineBtn" class="primary">Refine for this track</button>
+          </div>
+        </div>
+        <div class="prompt-status" id="promptStatus"></div>
+      </footer>
+    </div>
+
+    <dialog id="settingsDialog" class="dialog">
+      <form method="dialog" id="settingsForm">
+        <h2>Settings</h2>
+        <p class="muted">Keys are stored on this server laptop, encrypted for your Windows user (DPAPI). They never reach the browser or the show outputs.</p>
+        <fieldset>
+          <legend>Prompt refinement</legend>
+          <label class="field">Default provider
+            <select name="provider">
+              <option value="openrouter">OpenRouter (any model, incl. Claude)</option>
+              <option value="anthropic">Anthropic API</option>
+            </select>
+          </label>
+          <label class="field">OpenRouter API key <input name="openrouter" type="password" autocomplete="off" placeholder="sk-or-…" /></label>
+          <label class="field">Anthropic API key <input name="anthropic" type="password" autocomplete="off" placeholder="sk-ant-…" /></label>
+          <p class="muted small">A Claude Pro/Max subscription can't be used by apps; use an Anthropic API key, or reach Claude models through OpenRouter.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Generation (Open Higgsfield · kie.ai) — coming in v2</legend>
+          <label class="field">kie.ai API key <input name="kie" type="password" autocomplete="off" placeholder="stored for the generation phase" /></label>
+        </fieldset>
+        <div class="dialog-actions">
+          <button value="cancel" class="ghost">Cancel</button>
+          <button id="settingsSave" value="save" class="primary">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="outputDialog" class="dialog">
+      <form method="dialog">
+        <h2>Show output</h2>
+        <p class="muted">Open one of these addresses in Chrome or Edge on the show laptop (same network), click <b>Start output</b>, and it goes fullscreen. It works on any screen size or aspect ratio.</p>
+        <div id="outputUrls" class="url-list"></div>
+        <details class="muted small">
+          <summary>Options for LED walls / fixed pixel maps</summary>
+          <p>Append to the URL: <code>?res=3840x1080</code> (exact output resolution), <code>&amp;fit=contain|cover|stretch</code>, <code>&amp;scale=0.75</code> (fixed render scale), <code>&amp;hud=1</code> (info overlay).</p>
+          <p>If the show laptop can't connect, allow <b>stagegen.exe</b> through Windows Firewall on this laptop (private networks).</p>
+        </details>
+        <div class="dialog-actions">
+          <button value="close" class="primary">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/studio/main.js"></script>
+  </body>
+</html>

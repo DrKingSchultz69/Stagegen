@@ -1,0 +1,140 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif;
+  color: #eee;
+}
+
+body.idle {
+  cursor: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+#output {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.arm {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.8));
+  backdrop-filter: blur(2px);
+  z-index: 10;
+}
+
+.arm.hidden {
+  display: none;
+}
+
+.arm-card {
+  width: min(440px, 88vw);
+  padding: 28px 30px;
+  border-radius: 16px;
+  background: rgba(14, 14, 20, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.arm-brand {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: #8b8b9a;
+}
+
+.arm-card h1 {
+  margin: 10px 0 16px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.arm-status {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #b9b9c6;
+  display: grid;
+  gap: 6px;
+}
+
+.arm-status li::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 9px;
+  background: #555;
+  vertical-align: middle;
+}
+
+.arm-status li.ok::before {
+  background: #3ddc97;
+}
+
+.arm-status li.warn::before {
+  background: #ffb547;
+}
+
+#armBtn {
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #7c5cff;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#armBtn:hover {
+  background: #8d71ff;
+}
+
+.arm-hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: #8b8b9a;
+  line-height: 1.5;
+}
+
+kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #444;
+  font-size: 11px;
+}
+
+.hud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  font: 12px/1.5 ui-monospace, Consolas, monospace;
+  color: #cfcfdc;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none;
+}

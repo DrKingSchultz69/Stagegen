@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Stagegen Output</title>
+  </head>
+  <body>
+    <div id="stage"><canvas id="output"></canvas></div>
+
+    <div id="arm" class="arm">
+      <div class="arm-card">
+        <div class="arm-brand">STAGEGEN · OUTPUT</div>
+        <h1 id="armTitle">Connecting…</h1>
+        <ul class="arm-status">
+          <li id="stLink">Server: connecting</li>
+          <li id="stSync">Clock: syncing</li>
+          <li id="stAssets">Track: loading</li>
+        </ul>
+        <button id="armBtn">Start output</button>
+        <p class="arm-hint">Goes fullscreen and enables audio (if the operator turns it on). <kbd>F</kbd> fullscreen · <kbd>H</kbd> info · <kbd>Esc</kbd> exit</p>
+      </div>
+    </div>
+
+    <pre id="hud" class="hud hidden"></pre>
+    <script type="module" src="/src/show/main.js"></script>
+  </body>
+</html>

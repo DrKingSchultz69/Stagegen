@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stagegen Console · Bauhaus × Skeuomorphism</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================ tokens */
+  :root {
+    --chassis: #1e1d1b;
+    --panel-hi: #302f2b;
+    --panel-lo: #262522;
+    --well: #121210;
+    --edge: #3a3833;
+    --cream: #ece6d6;
+    --paper: #e9e2d0;
+    --dim: #9c9688;
+    --ink: #0d0d0c;
+    --graphite-text: #1e1d1b;
+    --blue: #2c5aa0;
+    --yellow: #e0a52e;
+    --red: #c23b2e;
+    --sans: 'Jost', 'Futura', 'Century Gothic', sans-serif;
+    --mono: 'JetBrains Mono', 'Consolas', monospace;
+    /* light comes from the sky */
+    --raised: inset 0 1px 0 rgba(255,255,255,.075), 0 1px 0 var(--ink), 0 10px 22px -8px rgba(0,0,0,.55);
+    --key: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -2px 0 rgba(0,0,0,.25), 0 2px 0 var(--ink), 0 5px 10px -2px rgba(0,0,0,.5);
+    --key-down: inset 0 2px 4px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.05), 0 0 0 var(--ink);
+    --recess: inset 0 2px 6px rgba(0,0,0,.75), inset 0 1px 1px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      var(--chassis);
+    color: var(--cream);
+    font: 400 14px/1.45 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .legend { font: 500 10.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+
+  /* ============================================================ layout */
+  .console {
+    max-width: 1440px; margin: 0 auto; padding: 10px 16px 12px;
+    display: grid; gap: 10px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-areas:
+      "rail rail rail rail rail rail rail rail rail rail rail rail"
+      "prev prev prev prev prev trns trns trns cue  cue  cue  cue"
+      "pads pads pads pads pads pads pads pads cue  cue  cue  cue"
+      "time time time time time time time time time time time time"
+      "prmt prmt prmt prmt prmt prmt prmt prmt prmt prmt prmt prmt";
+  }
+  .console.live {
+    grid-template-areas:
+      "rail rail rail rail rail rail rail rail rail rail rail rail"
+      "prev prev prev prev prev deck deck deck deck deck deck deck"
+      "lpad lpad lpad lpad lpad lpad lpad lpad lpad lpad lpad lpad"
+      "time time time time time time time time time time time time";
+  }
+  .console.live [data-track-only] { display: none !important; }
+  .console:not(.live) [data-live-only] { display: none !important; }
+
+  /* ============================================================ module */
+  .module {
+    position: relative;
+    background:
+      radial-gradient(circle at 9px 9px, #4b4943 0 2.2px, #1a1917 2.6px, transparent 3px),
+      radial-gradient(circle at calc(100% - 9px) 9px, #4b4943 0 2.2px, #1a1917 2.6px, transparent 3px),
+      radial-gradient(circle at 9px calc(100% - 9px), #4b4943 0 2.2px, #1a1917 2.6px, transparent 3px),
+      radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), #4b4943 0 2.2px, #1a1917 2.6px, transparent 3px),
+      linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+    border-radius: 4px;
+    box-shadow: var(--raised);
+    padding: 12px 18px 16px;
+  }
+  .mod-head { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; }
+  .mod-head .legend { white-space: nowrap; }
+  .mod-head .legend b { color: var(--cream); font-weight: 500; margin-right: 6px; }
+  .mod-head::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--edge), transparent); }
+  .mod-head .aside { order: 3; display: flex; gap: 14px; align-items: center; }
+
+  .well { background: var(--well); border-radius: 3px; box-shadow: var(--recess); }
+
+  /* ============================================================ keys */
+  .key {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 18px; border: 1px solid #111110; border-radius: 4px;
+    background: linear-gradient(180deg, #3d3c37, #2c2b28);
+    box-shadow: var(--key);
+    font: 500 11.5px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--cream);
+    transition: transform .08s ease-out, box-shadow .08s ease-out;
+  }
+  .key:active, .key.down { transform: translateY(1px); box-shadow: var(--key-down); }
+  .key.blue { background: linear-gradient(180deg, #3b6ab3, #27508e); border-color: #16305a; }
+  .key.yellow { background: linear-gradient(180deg, #edb547, #d19a25); border-color: #8a6516; color: var(--graphite-text); }
+  .key.red { background: linear-gradient(180deg, #d24c3e, #ae3326); border-color: #6c1f18; }
+  .key.round { width: 52px; min-height: 52px; padding: 0; border-radius: 50%; }
+  .key.round.sm { width: 44px; min-height: 44px; }
+  .glyph-tri { width: 0; height: 0; border-left: 14px solid var(--cream); border-top: 9px solid transparent; border-bottom: 9px solid transparent; margin-left: 4px; }
+  .glyph-sq { width: 13px; height: 13px; background: var(--cream); }
+  .glyph-bars { display: flex; gap: 4px; } .glyph-bars i { width: 4px; height: 15px; background: var(--cream); }
+
+  .led { width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4a4842, #232220); box-shadow: inset 0 1px 1px rgba(0,0,0,.6); flex: none; }
+  .led.blue { background: radial-gradient(circle at 35% 30%, #a9c6f5, #3d72c8 55%, #234b8a); }
+  .led.yellow { background: radial-gradient(circle at 35% 30%, #fff0bf, #e8ad33 55%, #9f7114); }
+  .led.red { background: radial-gradient(circle at 35% 30%, #ffc2b9, #d9483a 55%, #8e271d); }
+
+  .lamp { display: inline-flex; align-items: center; gap: 8px; }
+  .lamp .val { font: 400 11px var(--mono); color: var(--dim); }
+
+  /* rocker */
+  .rocker { display: inline-flex; padding: 3px; gap: 3px; border-radius: 5px; background: var(--well); box-shadow: var(--recess); }
+  .rocker button {
+    display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 0 16px;
+    border: 1px solid #111110; border-radius: 3px; background: linear-gradient(180deg, #3d3c37, #2c2b28);
+    box-shadow: var(--key); font: 500 11.5px var(--sans); letter-spacing: .16em; text-transform: uppercase;
+  }
+  .rocker button[aria-pressed="true"] { transform: translateY(1px); box-shadow: var(--key-down); background: linear-gradient(180deg, #262522, #2e2d29); }
+
+  /* fader (horizontal) */
+  .fader { display: grid; gap: 6px; }
+  .fader .track { position: relative; height: 10px; width: 100%; border-radius: 5px; background: var(--well); box-shadow: var(--recess); }
+  .fader .track::before { content: ""; position: absolute; inset: 4px 6px; border-top: 1px dashed #2a2926; }
+  .fader .cap {
+    position: absolute; top: -12px; width: 20px; height: 34px; margin-left: -10px; border-radius: 3px;
+    background: repeating-linear-gradient(90deg, #f2ecdd 0 2px, #d6cfbd 2px 4px);
+    box-shadow: inset 0 1px 0 #fff8e6, 0 2px 0 #77715f, 0 6px 8px rgba(0,0,0,.5);
+  }
+  .fader .scale { margin-top: 13px; display: flex; justify-content: space-between; width: 100%; font: 400 9px var(--mono); color: var(--dim); }
+
+  /* vertical fader (live deck) */
+  .vfader { display: grid; justify-items: center; gap: 8px; }
+  .vfader .track { position: relative; width: 12px; height: 210px; border-radius: 6px; background: var(--well); box-shadow: var(--recess); }
+  .vfader .cap {
+    position: absolute; left: -15px; width: 42px; height: 24px; margin-top: -12px; border-radius: 3px;
+    background: repeating-linear-gradient(180deg, #f2ecdd 0 2px, #d6cfbd 2px 4px);
+    box-shadow: inset 0 1px 0 #fff8e6, 0 2px 0 #77715f, 0 7px 10px rgba(0,0,0,.55);
+  }
+  .vfader .ticks { position: absolute; left: 36px; top: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between; font: 400 9px var(--mono); color: var(--dim); }
+
+  /* knob */
+  .knob-wrap { display: grid; justify-items: center; gap: 6px; }
+  .knob {
+    position: relative; width: 46px; height: 46px; border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 30%, rgba(255,255,255,.16), transparent 60%),
+      repeating-conic-gradient(#33322e 0 6deg, #24231f 6deg 12deg);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 0 var(--ink), 0 6px 10px rgba(0,0,0,.5), 0 0 0 4px var(--well), 0 0 0 5px #2b2a26;
+  }
+  .knob::after { content: ""; position: absolute; left: 50%; top: 5px; width: 2px; height: 14px; margin-left: -1px; background: var(--cream); border-radius: 1px; transform-origin: 1px 18px; transform: rotate(var(--rot, 0deg)); }
+
+  /* toggle */
+  .toggle { display: inline-flex; align-items: center; gap: 9px; background: none; border: 0; padding: 0; min-height: 44px; }
+  .toggle .sw { width: 30px; height: 16px; border-radius: 3px; background: var(--well); box-shadow: var(--recess); position: relative; }
+  .toggle .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 2px; background: linear-gradient(180deg, #4a4843, #34332f); box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 1px 0 var(--ink); transition: transform .08s; }
+  .toggle[aria-pressed="true"] .sw::after { transform: translateX(14px); background: linear-gradient(180deg, #f2ecdd, #d6cfbd); }
+
+  /* timecode */
+  .timecode { padding: 9px 16px 8px; display: inline-grid; gap: 2px; }
+  .timecode .t { font: 500 26px/1 var(--mono); color: #f1d9a6; letter-spacing: .02em; }
+  .timecode .t small { font-size: 15px; color: #7d725c; }
+
+  /* ============================================================ rail */
+  .rail { grid-area: rail; display: flex; align-items: center; gap: 22px; padding: 7px 18px; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo svg { display: block; }
+  .logo .word { font: 500 15px var(--sans); letter-spacing: .34em; }
+  .cartridge {
+    display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px 0 12px; border-radius: 3px;
+    background: linear-gradient(180deg, #efe9da, #ddd5c2); color: var(--graphite-text);
+    box-shadow: inset 0 1px 0 #fffaf0, 0 2px 0 #6d6757, 0 6px 10px rgba(0,0,0,.4);
+  }
+  .cartridge .no { font: 500 10px var(--mono); color: #7a7362; }
+  .cartridge .name { font: 500 15px var(--sans); }
+  .cartridge .caret { width: 0; height: 0; border-top: 6px solid #4a4538; border-left: 5px solid transparent; border-right: 5px solid transparent; margin-left: 8px; }
+  .rail .spacer { flex: 1; }
+  .lamps { display: flex; gap: 20px; }
+
+  /* ============================================================ preview */
+  .preview { grid-area: prev; }
+  .screen { position: relative; aspect-ratio: 16 / 9; padding: 10px; }
+  .screen .glass { position: absolute; inset: 10px; border-radius: 2px; overflow: hidden; background: #0e0b14; }
+  .visual { position: absolute; inset: -20%; filter: saturate(1.08);
+    background:
+      radial-gradient(40% 50% at 30% 60%, #c2187a 0%, transparent 70%),
+      radial-gradient(35% 40% at 70% 35%, #ff5fa2 0%, transparent 70%),
+      radial-gradient(30% 35% at 55% 70%, #ffe08a 0%, transparent 65%),
+      radial-gradient(50% 60% at 80% 80%, #4b0f6b 0%, transparent 75%),
+      radial-gradient(60% 60% at 15% 20%, #4b0f6b 0%, transparent 70%),
+      #12051f;
+    animation: drift 16s ease-in-out infinite alternate;
+  }
+  .visual.b { mix-blend-mode: screen; opacity: .55; animation-duration: 11s; animation-direction: alternate-reverse;
+    background: radial-gradient(25% 30% at 40% 40%, #ff5fa2, transparent 70%), radial-gradient(20% 25% at 65% 55%, #ffe08a, transparent 70%); }
+  @keyframes drift { from { transform: translate3d(-3%, 2%, 0) rotate(-4deg) scale(1.05); } to { transform: translate3d(3%, -2%, 0) rotate(5deg) scale(1.12); } }
+  .screen .reflect { position: absolute; inset: 10px; pointer-events: none; background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,0) 38%); }
+  .screen .tag { position: absolute; top: 20px; left: 20px; padding: 5px 9px; border-radius: 2px; background: rgba(18,18,16,.75); }
+  .screen .tag.live { background: var(--red); color: var(--cream); }
+  .screen .meta { position: absolute; right: 22px; bottom: 18px; font: 400 11px var(--mono); color: rgba(236,230,214,.8); }
+
+  /* ============================================================ transport */
+  .transport { grid-area: trns; display: flex; flex-direction: column; }
+  .stack { flex: 1; display: grid; align-content: space-between; gap: 12px; }
+  .stack .line { display: flex; align-items: center; gap: 10px; }
+  .stack .line.split { justify-content: space-between; }
+  .stack .timecode { display: grid; width: 100%; }
+  .stack .rocker { width: 100%; } .stack .rocker button { flex: 1; justify-content: center; }
+  .row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .group { display: flex; align-items: center; gap: 10px; }
+  .group + .group { padding-left: 16px; border-left: 1px solid var(--edge); box-shadow: -1px 0 0 rgba(0,0,0,.4); }
+
+  /* ============================================================ pads */
+  .pads { grid-area: pads; }
+  .pad-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .pad {
+    position: relative; min-height: 84px; padding: 10px 12px 16px; text-align: left; border-radius: 6px;
+    border: 1px solid #111110; background: linear-gradient(180deg, #393833, #2a2926);
+    box-shadow: var(--key); display: grid; align-content: space-between; gap: 6px; overflow: hidden;
+    transition: transform .08s, box-shadow .08s;
+  }
+  .pad:active { transform: translateY(1px); box-shadow: var(--key-down); }
+  .pad .n { font: 500 10px var(--mono); color: var(--dim); }
+  .pad .t { font: 500 14px/1.15 var(--sans); }
+  .pad .s { font: 400 10.5px var(--mono); color: var(--dim); }
+  .pad .stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; }
+  .pad .led { position: absolute; top: 10px; right: 10px; }
+  .pad.current { box-shadow: var(--key-down); transform: translateY(1px); background: linear-gradient(180deg, #2d2c28, #34332f); }
+  .pad.cued { border-color: #8a6516; background: linear-gradient(180deg, rgba(224,165,46,.24), rgba(224,165,46,.12)), linear-gradient(180deg, #393833, #2a2926); box-shadow: inset 0 0 0 1px rgba(224,165,46,.65), var(--key); }
+  .pad.onair { border-color: #6c1f18; box-shadow: inset 0 0 0 1px rgba(194,59,46,.8), var(--key-down); background: linear-gradient(180deg, rgba(194,59,46,.22), rgba(194,59,46,.1)), linear-gradient(180deg, #2d2c28, #34332f); }
+
+  /* live pads */
+  .lpads { grid-area: lpad; }
+  .lpads .pad-grid { gap: 12px; }
+  .lpads .pad { min-height: 168px; padding: 16px 16px 22px; }
+  .console.live .tl-well { height: 128px; }
+  .lpads .pad .t { font-size: 20px; }
+  .lpads .pad kbd { position: absolute; right: 14px; bottom: 16px; font: 500 11px var(--mono); color: var(--dim); }
+
+  /* ============================================================ live deck */
+  .deck { grid-area: deck; display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: stretch; }
+  .deck .big { display: grid; grid-template-rows: 1fr auto; gap: 12px; }
+  .key.next { min-height: 150px; width: 210px; font-size: 15px; flex-direction: column; gap: 10px; border-radius: 6px; }
+  .key.next .glyph-tri { border-left-color: var(--graphite-text); border-left-width: 22px; border-top-width: 14px; border-bottom-width: 14px; }
+  .key.blackout { min-height: 64px; width: 210px; border-radius: 6px; }
+  .deck .mid { display: grid; align-content: start; gap: 16px; }
+  .bpm { display: flex; align-items: center; gap: 14px; }
+  .bpm .well { padding: 8px 14px; }
+  .bpm .v { font: 500 30px/1 var(--mono); color: #f1d9a6; }
+  .meters { display: flex; gap: 14px; align-items: flex-end; }
+  .ladder { display: grid; justify-items: center; gap: 6px; }
+  .ladder .segs { display: grid; grid-auto-rows: 7px; gap: 3px; padding: 6px; }
+  .ladder .segs i { width: 22px; border-radius: 1px; background: #26251f; }
+  .ladder .segs i.on { background: #e6dcc0; }
+  .ladder .segs i.on.y { background: var(--yellow); }
+  .ladder .segs i.on.r { background: var(--red); }
+  .src { display: flex; align-items: center; gap: 10px; }
+  .slot { min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; gap: 10px; font: 400 12.5px var(--sans); color: var(--cream); }
+
+  /* ============================================================ cue sheet */
+  .cue { grid-area: cue; display: flex; flex-direction: column; min-height: 0; }
+  .paper {
+    flex: 1 1 0; min-height: 0; overflow: auto; border-radius: 2px; color: var(--graphite-text); padding: 18px 18px 8px;
+    background: linear-gradient(180deg, #efe9da, #e6dfcc);
+    box-shadow: inset 0 1px 0 #fffaf0, 0 1px 0 #6d6757, 0 8px 14px -6px rgba(0,0,0,.6);
+  }
+  .paper h2 { margin: 0; font: 500 22px/1.15 var(--sans); letter-spacing: -.01em; }
+  .paper .concept { margin: 6px 0 12px; color: #4b4639; max-width: 65ch; }
+  .paper .legend { color: #7a7362; }
+  .chips { display: flex; gap: 4px; margin: 8px 0 16px; }
+  .chips i { flex: 1; height: 22px; border-radius: 1px; box-shadow: inset 0 -1px 0 rgba(0,0,0,.18); }
+  .meta-row { display: flex; gap: 14px; font: 400 11px var(--mono); color: #6b6455; margin-bottom: 14px; }
+  .sec { position: relative; padding: 12px 0 12px 16px; border-top: 1px solid #cfc7b4; }
+  .sec::before { content: ""; position: absolute; left: 0; top: 14px; width: 4px; height: calc(100% - 28px); background: transparent; }
+  .sec.cued::before { background: var(--yellow); }
+  .sec.current::before { background: var(--graphite-text); }
+  .sec .h { display: flex; align-items: baseline; gap: 8px; }
+  .sec .h .n { font: 500 11px var(--mono); color: #7a7362; }
+  .sec .h .t { font: 500 15px var(--sans); }
+  .sec .h .time { margin-left: auto; font: 400 11px var(--mono); color: #6b6455; }
+  .sec .kind { font: 500 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: #7a7362; margin-left: 6px; }
+  .sec p { margin: 4px 0 6px; font-size: 12.5px; color: #4b4639; }
+  .sec .strip { height: 5px; border-radius: 1px; }
+  .sec .flags { display: flex; gap: 6px; margin-top: 7px; }
+  .sec .flags span { font: 400 10px var(--mono); color: #5b5547; border: 1px solid #c9c1ad; border-radius: 2px; padding: 1px 6px; }
+
+  /* ============================================================ timeline */
+  .timeline { grid-area: time; }
+  .tl-well { position: relative; height: 76px; padding: 0 12px; overflow: hidden; }
+  .tl-well svg { display: block; width: 100%; height: 100%; }
+
+  /* ============================================================ prompt */
+  .prompt { grid-area: prmt; }
+  .prompt-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+  .teleprinter {
+    border-radius: 3px; padding: 13px 16px; min-height: 56px;
+    background: repeating-linear-gradient(180deg, transparent 0 25px, rgba(30,29,27,.06) 25px 26px), linear-gradient(180deg, #e3dbc7, #ece6d6);
+    box-shadow: inset 0 3px 6px rgba(0,0,0,.35), inset 0 1px 1px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.06);
+    color: var(--graphite-text); font: 400 16px/26px var(--sans);
+  }
+  .teleprinter .caret { display: inline-block; width: 2px; height: 18px; background: var(--blue); vertical-align: -3px; margin-left: 2px; }
+  .prompt-side { display: flex; gap: 10px; align-items: center; }
+  .prompt-side .row { gap: 10px; justify-content: flex-end; }
+  .key.refine { min-height: 56px; padding: 0 22px; font-size: 13px; }
+  .key.refine .glyph-tri { border-left-width: 11px; border-top-width: 7px; border-bottom-width: 7px; }
+  .status-line { margin-top: 10px; display: flex; align-items: center; gap: 10px; color: var(--dim); font-size: 12.5px; }
+
+  /* ============================================================ show output overlay */
+  .output-view { position: fixed; inset: 0; z-index: 10; display: none; place-items: center; background: #0b0a12; }
+  .output-view.open { display: grid; }
+  .output-view .visual { inset: -10%; opacity: .9; }
+  .arm-plate {
+    position: relative; width: min(460px, 90vw); padding: 26px 28px 24px; border-radius: 4px;
+    background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo)); box-shadow: var(--raised), 0 40px 80px rgba(0,0,0,.6);
+  }
+  .arm-plate h3 { margin: 10px 0 18px; font: 500 26px var(--sans); }
+  .arm-plate ul { list-style: none; padding: 14px 16px; margin: 0 0 20px; display: grid; gap: 12px; }
+  .arm-plate li { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .arm-plate li .mono { margin-left: auto; color: var(--dim); font-size: 11.5px; }
+  .arm-plate .key { width: 100%; min-height: 56px; font-size: 13px; }
+  .arm-plate .hint { margin: 14px 0 0; color: var(--dim); font-size: 12px; }
+  .arm-plate kbd { font: 500 10.5px var(--mono); border: 1px solid var(--edge); border-radius: 2px; padding: 1px 5px; color: var(--cream); }
+  .arm-plate .key.close-out { position: absolute; top: 18px; right: 18px; width: auto; min-height: 32px; }
+</style>
+</head>
+<body>
+<div class="console" id="console">
+
+  <!-- ===================================================== RAIL -->
+  <header class="module rail">
+    <div class="logo">
+      <svg width="46" height="22" viewBox="0 0 46 22" aria-hidden="true">
+        <circle cx="10" cy="11" r="9" fill="#c23b2e"/>
+        <rect x="21" y="3" width="16" height="16" fill="#e0a52e"/>
+        <polygon points="36,20 46,20 41,6" fill="#2c5aa0"/>
+      </svg>
+      <span class="word">STAGEGEN</span>
+    </div>
+    <button class="cartridge" title="Switch project">
+      <span class="no">SHOW 03</span><span class="name">Dust &amp; Neon</span><span class="caret"></span>
+    </button>
+    <span class="spacer"></span>
+    <div class="lamps">
+      <span class="lamp"><i class="led blue"></i><span class="legend">Server</span><span class="val">1 ms</span></span>
+      <span class="lamp"><i class="led blue"></i><span class="legend">AI Gateway</span></span>
+      <span class="lamp"><i class="led blue"></i><span class="legend">Outputs</span><span class="val">2</span></span>
+    </div>
+    <button class="key" id="openOutput">Show output</button>
+    <div class="knob-wrap" title="Settings"><div class="knob" style="--rot:-40deg;width:38px;height:38px"></div></div>
+  </header>
+
+  <!-- ===================================================== PREVIEW -->
+  <section class="module preview">
+    <div class="mod-head"><span class="legend"><b>01</b>Preview</span>
+      <span class="aside"><span class="legend">Section</span><span class="mono" style="font-size:12px">3 / 5 · Sandstorm</span></span>
+    </div>
+    <div class="screen well">
+      <div class="glass"><div class="visual"></div><div class="visual b"></div></div>
+      <div class="reflect"></div>
+      <span class="tag legend" id="screenTag" style="color:var(--cream)">Preview</span>
+      <span class="meta">119.8 BPM · A MINOR · 1920×1080</span>
+    </div>
+  </section>
+
+  <!-- ===================================================== CUE SHEET -->
+  <aside class="module cue" data-track-only>
+    <div class="mod-head"><span class="legend"><b>04</b>Cue sheet</span>
+      <span class="aside"><span class="legend">Opus 5.5</span></span></div>
+    <div class="paper">
+      <span class="legend">Visual plan</span>
+      <h2>Dust &amp; Neon</h2>
+      <p class="concept">A lone figure crosses a dusk desert. Heat and sand build the tension until the sky ignites into a storm of neon light at the drop.</p>
+      <div class="meta-row"><span>119.8 BPM</span><span>A MINOR</span><span>5 SECTIONS</span><span>3:58</span></div>
+      <span class="legend">Show palette</span>
+      <div class="chips"><i style="background:#0b0f2a"></i><i style="background:#2a1b5c"></i><i style="background:#7a2e8e"></i><i style="background:#ff4d8d"></i><i style="background:#ffd36e"></i></div>
+      <div id="secList"></div>
+    </div>
+  </aside>
+
+  <!-- ===================================================== TRANSPORT -->
+  <section class="module transport" data-track-only>
+    <div class="mod-head"><span class="legend"><b>02</b>Transport</span></div>
+    <div class="stack">
+      <div class="rocker" role="group" aria-label="Mode">
+        <button aria-pressed="true" data-mode="track"><i class="led blue"></i>Track</button>
+        <button aria-pressed="false" data-mode="live"><i class="led"></i>Live</button>
+      </div>
+      <div class="well timecode"><span class="legend">Position</span><span class="t mono">01:32.4 <small>/ 03:58</small></span></div>
+      <div class="line split">
+        <span class="line">
+          <button class="key round blue" title="Play / pause (Space)"><span class="glyph-bars"><i></i><i></i></span></button>
+          <button class="key round sm" title="Back to start"><span class="glyph-sq"></span></button>
+        </span>
+        <button class="key red" title="Blackout (B)" style="min-height:48px">Blackout</button>
+      </div>
+      <div class="fader"><span class="legend">Intensity</span><div class="track"><span class="cap" style="left:66%"></span></div>
+        <div class="scale"><span>0</span><span>50</span><span>100</span><span>150</span></div></div>
+      <div class="line split">
+        <div class="knob-wrap"><div class="knob" style="--rot:28deg"></div><span class="legend">Offset <span class="mono" style="color:var(--cream)">+40</span> ms</span></div>
+        <span style="display:grid">
+          <button class="toggle" aria-pressed="true"><span class="sw"></span><span class="legend" style="color:var(--cream)">Monitor</span></button>
+          <button class="toggle" aria-pressed="false"><span class="sw"></span><span class="legend">Audio on show</span></button>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== PADS (track) -->
+  <section class="module pads" data-track-only>
+    <div class="mod-head"><span class="legend"><b>03</b>Sections</span>
+      <span class="aside"><span class="lamp"><i class="led blue"></i><span class="legend">Playing</span></span><span class="lamp"><i class="led yellow"></i><span class="legend">Cued</span></span><span class="legend">Keys 1–5</span></span></div>
+    <div class="pad-grid" id="padsTrack"></div>
+  </section>
+
+  <!-- ===================================================== LIVE DECK -->
+  <section class="module deck" data-live-only>
+    <div class="big">
+      <button class="key yellow next" title="Next section (→)"><span class="glyph-tri"></span>Next · Neon Storm</button>
+      <button class="key red blackout" title="Blackout (B)">Blackout</button>
+    </div>
+    <div class="mid">
+      <div class="mod-head" style="margin:0"><span class="legend"><b>02</b>Live deck</span></div>
+      <div class="rocker" role="group" aria-label="Mode" style="justify-self:start">
+        <button aria-pressed="false" data-mode="track"><i class="led"></i>Track</button>
+        <button aria-pressed="true" data-mode="live"><i class="led red"></i>Live</button>
+      </div>
+      <div class="bpm">
+        <div class="well"><span class="legend">Tempo</span><div class="v mono">119.8</div></div>
+        <button class="key round" title="Tap tempo (T)" style="width:64px;min-height:64px">Tap</button>
+        <div class="knob-wrap"><div class="knob" style="--rot:0deg"></div><span class="legend">Trim</span></div>
+      </div>
+      <div class="src">
+        <span class="legend">Input</span>
+        <span class="well slot"><i class="led blue"></i>Focusrite 2i2 · Ch 1–2</span>
+      </div>
+      <div class="meters" id="meters"></div>
+    </div>
+    <div class="vfader">
+      <span class="legend">Intensity</span>
+      <div class="track"><span class="cap" style="top:28%"></span><div class="ticks"><span>150</span><span>100</span><span>50</span><span>0</span></div></div>
+      <span class="mono" style="font-size:13px">112</span>
+    </div>
+  </section>
+
+  <!-- ===================================================== PADS (live) -->
+  <section class="module lpads" data-live-only>
+    <div class="mod-head"><span class="legend"><b>03</b>Section pads</span>
+      <span class="aside"><span class="lamp"><i class="led red"></i><span class="legend" style="color:var(--cream)">On air</span></span><span class="lamp"><i class="led yellow"></i><span class="legend">Cued</span></span></span></div>
+    <div class="pad-grid" id="padsLive"></div>
+  </section>
+
+  <!-- ===================================================== TIMELINE -->
+  <section class="module timeline">
+    <div class="mod-head"><span class="legend"><b>05</b>Timeline</span>
+      <span class="aside"><span class="legend">Dust_and_Neon_master.wav</span><button class="key" style="min-height:32px;padding:0 12px;font-size:10px" data-track-only>Replace audio</button></span></div>
+    <div class="well tl-well"><svg id="tl" preserveAspectRatio="none"></svg></div>
+  </section>
+
+  <!-- ===================================================== PROMPT -->
+  <section class="module prompt" data-track-only>
+    <div class="mod-head"><span class="legend"><b>06</b>Prompt</span>
+      <span class="aside"><span class="lamp"><i class="led blue"></i><span class="legend" style="text-transform:none;letter-spacing:.02em;font-size:12px">Plan ready in 21 s, sent to 2 outputs</span></span></span></div>
+    <div class="prompt-row">
+      <div class="teleprinter">lonely neon desert at dusk, slow build into a storm of light at the drop<span class="caret"></span></div>
+      <div class="prompt-side">
+        <span class="well slot"><span class="legend" style="color:var(--cream)">OpenRouter</span></span>
+        <span class="well slot mono" style="font-size:12px">anthropic/claude-opus-5.5</span>
+        <button class="toggle" aria-pressed="true"><span class="sw"></span><span class="legend" style="color:var(--cream)">Revise</span></button>
+        <button class="key blue refine"><span class="glyph-tri"></span>Refine for this track</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================== SHOW OUTPUT (show laptop) -->
+<div class="output-view" id="outputView" aria-hidden="true">
+  <div class="visual"></div><div class="visual b"></div>
+  <div class="arm-plate">
+    <button class="key close-out" id="closeOutput" style="min-height:32px;padding:0 12px;font-size:10px">Close</button>
+    <span class="legend">Stagegen · Output 01</span>
+    <h3>Dust &amp; Neon</h3>
+    <ul class="well">
+      <li><i class="led blue"></i>Server connected<span class="mono">192.168.29.20</span></li>
+      <li><i class="led blue"></i>Clock synced<span class="mono">±0.4 ms</span></li>
+      <li><i class="led blue"></i>Track loaded<span class="mono">119.8 BPM · 5 sections</span></li>
+      <li><i class="led"></i>Audio on this laptop<span class="mono">off</span></li>
+    </ul>
+    <button class="key blue"><span class="glyph-tri"></span>Start output</button>
+    <p class="hint">Goes fullscreen. <kbd>F</kbd> fullscreen · <kbd>H</kbd> info · <kbd>Esc</kbd> exit</p>
+  </div>
+</div>
+
+<script>
+  const SECTIONS = [
+    { t: 'Long Shadows', s: 0, e: 48, kind: 'intro', energy: .38, pal: ['#06070f','#14183a','#3b2a6b','#a3476f','#f2a76b'], p: 'Vast dusk desert, dunes fading into violet haze, tiny silhouette on the horizon.', fx: ['grain','haze'] },
+    { t: 'First Light', s: 48, e: 80, kind: 'build', energy: .62, pal: ['#0c0a1c','#2a1b5c','#6a2f86','#e0607e','#ffc98a'], p: 'First shafts of light cut through dust, slow push toward the figure.', fx: ['grain','bloom'] },
+    { t: 'Sandstorm', s: 80, e: 124, kind: 'verse', energy: .71, pal: ['#140c08','#4a2312','#a4512a','#e39a55','#f6d7a0'], p: 'Wind-driven sand sheets crossing the frame, amber backlight, rising particles.', fx: ['particles','haze'] },
+    { t: 'Neon Storm', s: 124, e: 190, kind: 'peak', energy: 1, pal: ['#12051f','#4b0f6b','#c2187a','#ff5fa2','#ffe08a'], p: 'Sky erupting in neon ribbons over the desert, magenta lightning, orbiting camera.', fx: ['particles','bloom','strobe'] },
+    { t: 'Afterglow', s: 190, e: 238, kind: 'outro', energy: .3, pal: ['#07070f','#1d1446','#5b2a86','#d9488f','#ffd29d'], p: 'Embers settling on cooling dunes, long slow pull-out to the horizon.', fx: ['grain'] },
+  ];
+  const CURRENT = 2, CUED = 3, DURATION = 238, POS = 92.4;
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const grad = (p) => `linear-gradient(90deg, ${p.join(',')})`;
+
+  // cue sheet
+  document.getElementById('secList').innerHTML = SECTIONS.map((x, i) => `
+    <div class="sec ${i === CUED ? 'cued' : ''} ${i === CURRENT ? 'current' : ''}">
+      <div class="h"><span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t">${x.t}</span><span class="kind">${x.kind}</span><span class="time">${fmt(x.s)}–${fmt(x.e)}</span></div>
+      <p>${x.p}</p>
+      <div class="strip" style="background:${grad(x.pal)}"></div>
+      <div class="flags">${x.fx.map((f) => `<span>${f}</span>`).join('')}<span>E ${Math.round(x.energy * 100)}</span></div>
+    </div>`).join('');
+
+  // pads
+  const pad = (x, i, live) => {
+    const cls = live ? (i === CURRENT ? 'onair' : i === CUED ? 'cued' : '') : (i === CURRENT ? 'current' : i === CUED ? 'cued' : '');
+    const led = i === CURRENT ? (live ? 'red' : 'blue') : i === CUED ? 'yellow' : '';
+    return `<button class="pad ${cls}"><span class="n">${String(i + 1).padStart(2, '0')} · ${x.kind}</span>
+      <span class="t">${x.t}</span><span class="s">${fmt(x.s)}</span><i class="led ${led}"></i>
+      ${live ? `<kbd>${i + 1}</kbd>` : ''}<span class="stripe" style="background:${grad(x.pal)}"></span></button>`;
+  };
+  document.getElementById('padsTrack').innerHTML = SECTIONS.map((x, i) => pad(x, i, false)).join('');
+  document.getElementById('padsLive').innerHTML = SECTIONS.map((x, i) => pad(x, i, true)).join('');
+
+  // meters
+  const levels = [[.88, 'Low'], [.66, 'Mid'], [.52, 'High'], [.74, 'Level']];
+  document.getElementById('meters').innerHTML = levels.map(([v, l]) => {
+    let segs = '';
+    for (let k = 11; k >= 0; k--) {
+      const on = k / 12 < v, c = k >= 11 ? 'r' : k >= 9 ? 'y' : '';
+      segs += `<i class="${on ? 'on ' + c : ''}"></i>`;
+    }
+    return `<div class="ladder"><div class="segs well">${segs}</div><span class="legend">${l}</span></div>`;
+  }).join('');
+
+  // timeline (SVG waveform)
+  function drawTimeline() {
+    const svg = document.getElementById('tl');
+    const W = svg.clientWidth || 1200, H = svg.clientHeight || 120;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const x = (t) => (t / DURATION) * W;
+    let out = '';
+    SECTIONS.forEach((s, i) => {
+      const x0 = x(s.s), x1 = x(s.e);
+      out += `<rect x="${x0}" y="22" width="${x1 - x0 - 2}" height="${H - 40}" fill="${s.pal[3]}" opacity="${i === CURRENT ? .16 : .07}"/>`;
+      out += `<rect x="${x0}" y="16" width="${x1 - x0 - 2}" height="3" fill="${s.pal[3]}"/>`;
+      out += `<text x="${x0 + 6}" y="11" fill="${i === CURRENT ? '#ece6d6' : '#9c9688'}" font-family="Jost, Century Gothic, sans-serif" font-size="10.5" letter-spacing="1.4">${String(i + 1).padStart(2, '0')} ${s.t.toUpperCase()}</text>`;
+    });
+    // waveform
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const mid = (H + 4) / 2, amp = (H - 46) / 2, N = Math.floor(W / 3);
+    let path = '';
+    for (let k = 0; k < N; k++) {
+      const t = (k / N) * DURATION;
+      const sec = SECTIONS.find((s) => t >= s.s && t < s.e) ?? SECTIONS.at(-1);
+      const beat = 0.65 + 0.35 * Math.abs(Math.sin((t * Math.PI * 119.8) / 60));
+      const v = Math.max(.05, (0.25 + 0.75 * sec.energy) * beat * (0.6 + 0.4 * rnd())) * amp;
+      path += `M${(k * 3).toFixed(1)} ${(mid - v).toFixed(1)}V${(mid + v).toFixed(1)}`;
+    }
+    out += `<path d="${path}" stroke="#d9d1bd" stroke-width="1.6" opacity=".72"/>`;
+    // bar ticks
+    const bar = 240 / 119.8;
+    for (let t = 0; t < DURATION; t += bar / 4) {
+      const isBar = Math.abs((t / bar) - Math.round(t / bar)) < 0.01;
+      out += `<rect x="${x(t)}" y="${H - 14}" width="1" height="${isBar ? 9 : 4}" fill="${isBar ? '#6f6a5e' : '#3a3833'}"/>`;
+    }
+    // playhead
+    const px = x(POS);
+    out += `<rect x="${px - 1}" y="14" width="2" height="${H - 24}" fill="#c23b2e"/><polygon points="${px - 6},12 ${px + 6},12 ${px},20" fill="#c23b2e"/>`;
+    svg.innerHTML = out;
+  }
+  drawTimeline();
+  addEventListener('resize', drawTimeline);
+
+  // interactions: mode rocker, toggles, output overlay
+  const consoleEl = document.getElementById('console');
+  document.querySelectorAll('.rocker button').forEach((b) => b.addEventListener('click', () => {
+    const live = b.dataset.mode === 'live';
+    consoleEl.classList.toggle('live', live);
+    const tag = document.getElementById('screenTag');
+    tag.textContent = live ? 'On air · Live' : 'Preview';
+    tag.classList.toggle('live', live);
+    requestAnimationFrame(drawTimeline);
+  }));
+  document.querySelectorAll('.toggle').forEach((t) => t.addEventListener('click', () => t.setAttribute('aria-pressed', t.getAttribute('aria-pressed') !== 'true')));
+  document.getElementById('openOutput').addEventListener('click', () => document.getElementById('outputView').classList.add('open'));
+  document.getElementById('closeOutput').addEventListener('click', () => document.getElementById('outputView').classList.remove('open'));
+</script>
+</body>
+</html>

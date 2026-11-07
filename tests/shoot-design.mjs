@@ -1,0 +1,20 @@
+// Screenshots of design/stagegen-console.html in its three states.
+import { chromium } from 'playwright';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import fs from 'node:fs';
+const out = fileURLToPath(new URL('../design/shots/', import.meta.url));
+fs.mkdirSync(out, { recursive: true });
+const page = await (await chromium.launch({ channel: 'msedge' })).newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+await page.goto(pathToFileURL(fileURLToPath(new URL('../design/stagegen-console.html', import.meta.url))).href);
+await page.waitForTimeout(1500);
+await page.screenshot({ path: out + 'claude-studio-track.png', fullPage: true });
+await page.click('.transport .rocker button[data-mode="live"]');
+await page.waitForTimeout(400);
+await page.screenshot({ path: out + 'claude-studio-live.png', fullPage: true });
+await page.click('.deck .rocker button[data-mode="track"]');
+await page.click('#openOutput');
+await page.waitForTimeout(400);
+await page.screenshot({ path: out + 'claude-show-output.png' });
+const h = await page.evaluate(() => document.documentElement.scrollHeight);
+console.log('track page height', h);
+process.exit(0);

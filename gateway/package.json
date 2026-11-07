@@ -1,0 +1,18 @@
+{
+  "name": "stagegen-gateway",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Stagegen AI gateway: LLM prompt refinement (and later: generation via the Open Higgsfield client)",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+web/dist/
+core/build/
+data/
+_ref/
+tests/shots/
+*.log

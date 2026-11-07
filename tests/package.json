@@ -1,0 +1,7 @@
+{
+  "name": "stagegen-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "e2e": "node e2e.mjs" },
+  "dependencies": { "playwright": "^1.65.0" }
+}
